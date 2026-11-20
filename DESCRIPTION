@@ -1,0 +1,35 @@
+Package: curvaUE
+Title: Experimental Unit Size and Shape from Bivariate Curvature
+Version: 0.3.2
+Authors@R: c(
+    person("Jorge Claudio", "Vargas-Rojas",
+           email = "jorgeclaudio.vargas@ucr.ac.cr",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-1139-2148")),
+    person("Greivin", "Hernandez-Gonzalez", role = "aut"))
+Description: Estimates experimental-unit dimensions from uniformity trials using
+    Gaussian and simultaneous sectional curvature on a fitted bivariate
+    coefficient-of-variation surface. Enumerates exact rectangular and square
+    configurations with at least two experimental units, fits the Smith (1938)
+    <doi:10.1017/S0021859600054945> weighted log-variance regression, and
+    provides descriptive statistics,
+    numerical results, and publication-ready figures. Analysis is performed
+    in basic-unit coordinates; physical units are converted only afterwards.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends: R (>= 4.1.0)
+Imports: stats, graphics, grDevices, ggplot2 (>= 3.4.0), rlang (>=
+        1.0.0)
+Suggests: testthat (>= 3.0.0)
+Config/testthat/edition: 3
+LazyData: true
+URL: https://github.com/claudiovargas40/curvaUE
+BugReports: https://github.com/claudiovargas40/curvaUE/issues
+Config/roxygen2/version: 8.1.1
+NeedsCompilation: no
+Packaged: 2026-11-20 20:52:03 UTC; Soporte
+Author: Jorge Claudio Vargas-Rojas [aut, cre] (ORCID:
+    <https://orcid.org/0000-0002-1139-2148>),
+  Greivin Hernandez-Gonzalez [aut]
+Maintainer: Jorge Claudio Vargas-Rojas <jorgeclaudio.vargas@ucr.ac.cr>
