@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.3 — Coordinate-wise marginal efficiency and complete graphics integration
+
+- Add `marginal_efficiency_2d()` with a closed-form, log-scale numerical evaluation of the coordinate-wise marginal-efficiency solution and a configurable target slope.
+- Integrate `criterion = "marginal"` and `criterion = "all"` into `analyze_uniformity_trial()`. The `target_slope` argument now follows the existing `smith_method` argument to preserve positional call compatibility.
+- Show Gaussian, sectional and marginal solution markers in contour plots, perspective (3D) surfaces and multi-crop figures; support marginal and all-method comparisons in coordinate-section plots.
+- Keep the sectional-curvature loci and their guides as sectional features in the multi-crop figure.
+- Update README, Rd usage, tests and CRAN comments; retain the maintainer and authors selected by the project team.
+- Previous Gaussian-curvature, sectional-curvature and Smith estimators and the original example datasets are unchanged.
+
 ## 0.3.2 — CRAN-check compatibility
 
 - Fix 3D overlay by using `grDevices::trans3d()`, the exported function.

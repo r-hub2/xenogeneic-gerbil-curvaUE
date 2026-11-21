@@ -92,3 +92,21 @@ test_that("ggplot objects can be built with data-mask column references", {
     expect_error(ggplot2::ggplot_build(p), NA)
   }
 })
+
+test_that("marginal_efficiency_2d satisfies the marginal conditions in closed form", {
+  a <- 22.95; m <- 0.608; n <- 0.232; tau <- 1
+  res <- marginal_efficiency_2d(a, m, n, target_slope = tau)
+  x <- res$width; y <- res$length; cv <- res$cv
+  expect_equal(cv, a * x^(-m) * y^(-n), tolerance = 1e-8)
+  expect_equal(m * cv / x, tau, tolerance = 1e-8)
+  expect_equal(n * cv / y, tau, tolerance = 1e-8)
+  expect_equal(y / x, n / m, tolerance = 1e-8)
+  expect_identical(as.character(res$criterion), "marginal")
+  expect_error(marginal_efficiency_2d(a, m, n, target_slope = -1))
+})
+
+test_that("analyze_uniformity_trial returns three solutions with criterion = all", {
+  res <- analyze_uniformity_trial(example_trial("rice"), criterion = "all")
+  expect_equal(nrow(res$solution), 3L)
+  expect_true("marginal" %in% as.character(res$solution$criterion))
+})

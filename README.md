@@ -1,14 +1,10 @@
-# curvaUE 0.3.2 — Experimental Unit Sizing by Bivariate Curvature
+# curvaUE 0.3.3 — Experimental-Unit Dimensions from Bivariate CV Surfaces
 
-`curvaUE` is an R package for analyzing agricultural uniformity trials. The
-**public API, help pages, messages, plots, output columns, and execution scripts are in English**.
-The project/package name `curvaUE` is retained.
+`curvaUE` analyzes agricultural uniformity trials to estimate continuous experimental-unit dimensions with **three mathematically distinct criteria** on a fitted coefficient-of-variation (CV) surface. The public API and help pages are in English. Legacy Spanish aliases are retained for older scripts.
 
-## Input format
+## Input
 
-Supply a numeric yield grid: one row per physical row and one column per
-physical column of basic units. When importing CSV, the first line contains
-**column headers only**; do not include a row-number column.
+Supply a numeric yield matrix (physical rows = matrix rows, physical columns = matrix columns). In a CSV, the first line contains **column headers**, but no separate row-number or index column:
 
 ```csv
 C1,C2,C3,C4
@@ -19,22 +15,37 @@ C1,C2,C3,C4
 
 ```r
 library(curvaUE)
-M <- read_trial_matrix("path/to/trial.csv")
-validate_trial_matrix(M)
-head(as_long_trial_data(M))
+trial <- read_trial_matrix("path/to/trial.csv")
+validate_trial_matrix(trial)
 ```
 
-The number of rows and columns is detected automatically; grids need not be square.
-The package includes rice (20x20), maize (20x20), Nambi common bean (10x20)
-and cowpea (10x20): `example_trial("rice")`, etc.
+Grids may be rectangular. Four real example matrices are included: rice and maize (20 x 20 basic units each), Nambí common bean and cowpea (10 x 20 basic units each). For example, `example_trial("rice")` returns the rice grid.
+
+## Mathematical criteria
+
+The nonlinear CV surface is fitted by unweighted nonlinear least squares:
+
+\[ CV(x,y) = a x^{-m}y^{-n}, \qquad a,m,n > 0, \]
+
+with width `x` and length `y` measured in **basic units (BU)**, and CV in percent. The three criteria are:
+
+1. **Gaussian curvature:** the point of maximum Gaussian curvature of the fitted surface.
+2. **Simultaneous sectional curvature:** the intersection of the maxima of the two coordinate-section curvatures.
+3. **Coordinate-wise marginal efficiency:** the point satisfying `m * CV(x,y) / x = target_slope` and `n * CV(x,y) / y = target_slope`. The target is a **positive CV decrease in percentage points per additional basic unit**, applied independently to width and length. The point has `y/x = n/m` and is not, in general, a maximum-curvature point. It is also **not** a marginal-efficiency optimum defined per unit of total area or cost.
+
+The methods yield continuous model-based solutions. They do not automatically restrict dimensions to admissible discrete plot geometries. Compare the results with `result$configurations` and with experimental-design and agronomic constraints. Any solution beyond the observed field requires extrapolation.
 
 ## Main analysis
 
 ```r
-M <- example_trial("rice")
+trial <- example_trial("rice")
 result <- analyze_uniformity_trial(
-  trial = M, unit_width_m = 1, unit_length_m = 1,
-  min_plots = 2, criterion = "both", smith_method = "smith1938"
+  trial = trial,
+  unit_width_m = 1, unit_length_m = 1,
+  min_plots = 2,
+  criterion = "all",              # gaussian, sectional, marginal
+  smith_method = "smith1938",
+  target_slope = 1               # CV percentage points per BU
 )
 result$dimensions
 result$smith$b_prime
@@ -42,58 +53,61 @@ result$surface[c("a", "m", "n")]
 result$solution
 ```
 
-`result$configurations` lists all exact rectangular/square configurations with
-at least **two** independent experimental units, including 200-BU plots with
-only two replicates in the 20x20 example.
+The default `criterion = "both"` still returns **only Gaussian and sectional curvature**, preserving established workflows. Alternatively select `"gaussian"`, `"sectional"`, `"marginal"` or `"all"`. The new `target_slope` argument was **appended after `smith_method`**, so existing positional calls remain compatible.
 
-The main Smith estimate fits
-`log(unit_variance) ~ log(area)` by weighted least squares with weights
-`n_plots - 1`, a free intercept, and the conventional sample unit variance.
-It reports the *finite-field* exponent `b_prime` without an infinite-field correction.
-The CV surface is fitted by **unweighted** nonlinear least squares:
-`CV = a * width^(-m) * length^(-n)`.
-Curvatures use the number of **basic units (BU)**; dimensions are converted
-later to physical metres and square metres. The CV is expressed in percentage points.
+Results are calculated in BU coordinates, then converted to metres and square metres in `result$solution`. For the marginal criterion, `target_slope` always refers to BU dimensions, not physical metres. The code enumerates every exact rectangular or square partition that leaves at least two experimental units (for 20 x 20 grids, including 200-BU configurations with two units). The Smith (1938) method uses weighted regression of the log of the conventional unit variance on log area, with weights `n_plots - 1` and a free intercept. Its `b_prime` estimate applies to the observed finite field; it is not corrected to infinite-field conditions.
 
-## Figures
+## Graphics: three criteria
 
 ```r
 cfg <- result$configurations
 surface <- result$surface
-plot_trial_heatmap(M)
+plot_trial_heatmap(trial)
 plot_cv_profiles(cfg, surface)
-plot_cv_contours(surface, cfg)
-plot_curvature_sections(surface, configurations = cfg)
-plot_multicrop_curvature()
+plot_cv_contours(surface, cfg, target_slope = 1)
+plot_cv_surface(surface, cfg, target_slope = 1)
+plot_curvature_sections(surface, criterion = "all",
+                        configurations = cfg, target_slope = 1)
+plot_multicrop_curvature(target_slope = 1)
 ```
 
-## Installing and validating
+`plot_cv_contours()` and `plot_cv_surface()` show **all three points**. `plot_curvature_sections()` supports all three separately (`criterion = "marginal"`) or overlaid (`"all"`). The multi-crop figure shows both sectional-curvature loci plus symbols for all three criteria; its dashed guides and numerical labels continue to refer **only to the sectional solution**. Changing `target_slope` changes the marginal solution, not either curvature solution.
 
-From the **unpacked delivery parent folder**, run `RUN_AND_VALIDATE_CURVAUE.R`
-with **Source** in RStudio. The script forces installation of the local package,
-loads the four data grids, compares results to independent Python reference
-values, runs `testthat`, and exports CSV files and figures into `curvaUE_Results/`.
+### Marginal criterion independently
 
-Run `ANALYZE_MY_MATRIX.R` to analyze your own CSV using the same API.
-To check installation separately, run `CHECK_INPUT_DATA.R`.
-Before public distribution, run `devtools::check("curvaUE")` or
-`R CMD check` in a local R installation.
+```r
+marginal_efficiency_2d(a = 22.95414, m = 0.60814, n = 0.23216,
+                       target_slope = 1)
+```
 
-## Compatibility
+## Install, test and prepare for CRAN
 
-Old Spanish function names are available temporarily as aliases and retain
-Spanish argument and output field names for legacy scripts. **Use the English
-functions and fields in all new work.** Legacy crop identifiers remain in the
-original `.rda` files, while the recommended `example_trial()` API and example
-CSV names are in English.
+Install from the directory containing `DESCRIPTION`:
 
-## Scope
+```r
+install.packages("devtools")
+devtools::install("path/to/curvaUE", upgrade = "never")
+library(curvaUE)
+```
 
-The methods are methodological geometric criteria, not by themselves an
-agronomic optimum under every cost or precision requirement. The derived
-continuous dimensions must be considered together with admissible plots and
-experimental design requirements. The example plots from different
-configurations share original observations.
+Two example scripts are included within the installed package:
 
-See `VALIDATION/api_name_mapping.csv` in the delivery folder for the
-18 function-name mappings from the previous release.
+```r
+source(system.file("examples", "CHECK_SMITH_1938.R", package = "curvaUE"))
+source(system.file("examples", "MIN_TWO_PLOTS_EXAMPLE.R", package = "curvaUE"))
+```
+
+Before CRAN submission, run from a checkout or extracted directory:
+
+```r
+# Requires an installed LaTeX distribution to build the manual.
+devtools::check("path/to/curvaUE", args = "--as-cran",
+                remote = TRUE, manual = TRUE, document = FALSE,
+                error_on = "never")
+```
+
+See `tests/testthat/` for numerical tests. Cross-platform checks for version 0.3.2 **do not validate the added functionality of version 0.3.3**; run fresh checks on 0.3.3 prior to submission.
+
+## Compatibility and limitations
+
+The original Gaussian and sectional algorithms, Smith implementation, and the four example yield grids are unchanged from 0.3.2. Spanish-language function aliases remain for older scripts. Source figures and numerical methods are intended for methodological comparison, not as universal cost-optimal agronomic recommendations. Grouped experimental units reuse original uniformity-trial observations.
